@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: alpaca-bot
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: python main.py
+    envVars:
+      - key: ALPACA_API_KEY
+        value: your_paper_api_key_here
+      - key: ALPACA_SECRET_KEY
+        value: your_paper_secret_key_here
