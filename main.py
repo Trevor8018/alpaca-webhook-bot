@@ -15,47 +15,36 @@ def webhook():
     data = request.json
     action = data.get("action")
     symbol = data.get("symbol")
-    percent = data.get("percent", 10)  # Default to 10% if not provided
+    percent = data.get("percent", 10)  # Default to 10%
 
     if not action or not symbol:
         return {"status": "Missing action or symbol"}
 
-    # Get account balance
-    account = api.get_account()
-    cash_balance = float(account.cash)
-    budget = (percent / 100) * cash_balance
+    try:
+        account = api.get_account()
+        cash_balance = float(account.cash)
+        budget = (percent / 100) * cash_balance
 
-    # Get current price
-    bar = api.get_latest_bar(symbol)
-    price = bar.c
-    qty = math.floor(budget / price)
+        latest_trade = api.get_latest_trade(symbol)
+        price = float(latest_trade.price)
+        qty = math.floor(budget / price)
 
-    if qty < 1:
-        return {"status": f"Not enough funds to buy at least 1 share of {symbol}"}
+        if qty < 1:
+            return {"status": f"Not enough funds to buy at least 1 share of {symbol}"}
 
-    if action.upper() == "BUY":
         api.submit_order(
             symbol=symbol,
             qty=qty,
-            side="buy",
+            side=action.lower(),
             type="market",
             time_in_force="gtc",
             extended_hours=True
         )
-        return {"status": f"BUY order placed: {qty} shares of {symbol}"}
 
-    elif action.upper() == "SELL":
-        api.submit_order(
-            symbol=symbol,
-            qty=qty,
-            side="sell",
-            type="market",
-            time_in_force="gtc",
-            extended_hours=True
-        )
-        return {"status": f"SELL order placed: {qty} shares of {symbol}"}
+        return {"status": f"{action.upper()} order placed for {qty} shares of {symbol}"}
 
-    return {"status": "Invalid action"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.route('/')
 def home():
