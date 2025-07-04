@@ -15,7 +15,7 @@ def webhook():
     data = request.json
     action = data.get("action")
     symbol = data.get("symbol")
-    percent = data.get("percent", 10)  # Default to 10%
+    percent = float(data.get("percent", 10))  # default to 10%
 
     if not action or not symbol:
         return {"status": "Missing action or symbol"}
@@ -25,14 +25,15 @@ def webhook():
         cash_balance = float(account.cash)
         budget = (percent / 100) * cash_balance
 
-        latest_trade = api.get_latest_trade(symbol)
-        price = float(latest_trade.price)
+        barset = api.get_latest_bar(symbol)
+        price = barset.c
+
         qty = math.floor(budget / price)
 
         if qty < 1:
-            return {"status": f"Not enough funds to buy at least 1 share of {symbol}"}
+            return {"status": f"Not enough funds to buy 1 share of {symbol}"}
 
-        api.submit_order(
+        order = api.submit_order(
             symbol=symbol,
             qty=qty,
             side=action.lower(),
@@ -41,11 +42,15 @@ def webhook():
             extended_hours=True
         )
 
-        return {"status": f"{action.upper()} order placed for {qty} shares of {symbol}"}
+        return {"status": f"{action.upper()} order placed for {qty} share(s) of {symbol}"}
 
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": f"Error: {str(e)}"}
 
 @app.route('/')
 def home():
-    return "Alpaca Auto-Trading Bot is Running!"
+    return "✅ Alpaca Auto-Trading Bot is Live!"
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
